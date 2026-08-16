@@ -1,0 +1,123 @@
+{
+  "uid": "sidwell-redis",
+  "title": "Redis",
+  "tags": ["sidwell", "cache"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "id": 100, "type": "row", "title": "Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false },
+    {
+      "id": 1, "type": "stat", "title": "Memory Used",
+      "gridPos": { "h": 4, "w": 5, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{ "expr": "redis_memory_used_bytes", "refId": "A" }]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Memory Used %",
+      "gridPos": { "h": 4, "w": 5, "x": 5, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 85 }] } } },
+      "options": { "colorMode": "background" },
+      "targets": [{ "expr": "100 * redis_memory_used_bytes / (redis_memory_max_bytes > 0 or on() vector(1))", "refId": "A" }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Connected Clients",
+      "gridPos": { "h": 4, "w": 5, "x": 10, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "redis_connected_clients", "refId": "A" }]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Total Keys",
+      "gridPos": { "h": 4, "w": 4, "x": 15, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(redis_db_keys)", "refId": "A" }]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Uptime",
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{ "expr": "redis_uptime_in_seconds", "refId": "A" }]
+    },
+
+    { "id": 200, "type": "row", "title": "Traffic",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }, "collapsed": false },
+    {
+      "id": 6, "type": "timeseries", "title": "Commands / sec (top by type)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "topk(10, rate(redis_commands_total[5m]))", "legendFormat": "{{cmd}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Cache Hit Ratio (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "targets": [{
+        "expr": "100 * rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))",
+        "legendFormat": "hit%",
+        "refId": "A"
+      }]
+    },
+
+    { "id": 300, "type": "row", "title": "Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }, "collapsed": false },
+    {
+      "id": 8, "type": "timeseries", "title": "Evictions & Expirations / sec",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(redis_evicted_keys_total[5m])", "legendFormat": "evicted", "refId": "A" },
+        { "expr": "rate(redis_expired_keys_total[5m])", "legendFormat": "expired", "refId": "B" }
+      ]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Blocked Clients & Rejections",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "redis_blocked_clients", "legendFormat": "blocked", "refId": "A" },
+        { "expr": "rate(redis_rejected_connections_total[5m])", "legendFormat": "rejected/s", "refId": "B" }
+      ]
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "Keys per DB",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "redis_db_keys", "legendFormat": "{{db}}", "refId": "A" }]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Net I/O",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        { "expr": "rate(redis_net_input_bytes_total[5m])", "legendFormat": "rx", "refId": "A" },
+        { "expr": "rate(redis_net_output_bytes_total[5m])", "legendFormat": "tx", "refId": "B" }
+      ]
+    },
+
+    { "id": 400, "type": "row", "title": "Container",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 }, "collapsed": false },
+    {
+      "id": 12, "type": "timeseries", "title": "CPU (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "targets": [{ "expr": "rate(container_cpu_usage_seconds_total{name=\"sidwell-redis\"}[5m]) * 100", "legendFormat": "cpu%", "refId": "A" }]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Container Memory",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{ "expr": "container_memory_working_set_bytes{name=\"sidwell-redis\"}", "legendFormat": "working set", "refId": "A" }]
+    }
+  ]
+}

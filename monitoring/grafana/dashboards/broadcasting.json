@@ -1,0 +1,131 @@
+{
+  "uid": "sidwell-broadcasting",
+  "title": "Broadcasting",
+  "tags": ["sidwell", "dotnet"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "id": 100, "type": "row", "title": "Traffic",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false },
+    {
+      "id": 1, "type": "timeseries", "title": "Request Rate (req/s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (code, method) (rate(http_requests_received_total{job=\"backend\"}[5m]))", "legendFormat": "{{code}} {{method}}", "refId": "A" }]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Error Rate % (5xx)",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } } },
+      "options": { "colorMode": "background" },
+      "targets": [{ "expr": "100 * sum(rate(http_requests_received_total{job=\"backend\",code=~\"5..\"}[5m])) / sum(rate(http_requests_received_total{job=\"backend\"}[5m]))", "refId": "A" }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "In-Flight Requests",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(http_requests_in_progress{job=\"backend\"})", "refId": "A" }]
+    },
+
+    { "id": 200, "type": "row", "title": "Latency",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }, "collapsed": false },
+    {
+      "id": 4, "type": "timeseries", "title": "Latency (p50 / p95 / p99)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"backend\"}[5m])))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"backend\"}[5m])))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"backend\"}[5m])))", "legendFormat": "p99", "refId": "C" }
+      ]
+    },
+    {
+      "id": 5, "type": "heatmap", "title": "Latency Distribution (heatmap)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum by (le) (rate(http_request_duration_seconds_bucket{job=\"backend\"}[5m]))", "format": "heatmap", "legendFormat": "{{le}}", "refId": "A" }
+      ]
+    },
+
+    { "id": 300, "type": "row", "title": ".NET Runtime",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 }, "collapsed": false },
+    {
+      "id": 6, "type": "timeseries", "title": "Total .NET Memory",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 19 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{ "expr": "dotnet_total_memory_bytes{job=\"backend\"}", "legendFormat": "heap", "refId": "A" }]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "GC Collections / sec",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 19 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(dotnet_collection_count_total{job=\"backend\"}[5m])", "legendFormat": "gen {{generation}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "ThreadPool + Queue",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 19 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "dotnet_threadpool_num_threads{job=\"backend\"}", "legendFormat": "threads", "refId": "A" },
+        { "expr": "dotnet_threadpool_queue_length{job=\"backend\"}", "legendFormat": "queue", "refId": "B" }
+      ]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Exceptions / sec",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(dotnet_exceptions_total{job=\"backend\"}[5m])", "legendFormat": "{{type}}", "refId": "A" }]
+    },
+    {
+      "id": 10, "type": "stat", "title": "Uptime",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{ "expr": "time() - process_start_time_seconds{job=\"backend\"}", "refId": "A" }]
+    },
+    {
+      "id": 11, "type": "stat", "title": "Container Restarts (24h)",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "changes(container_start_time_seconds{name=\"sidwell-broadcasting\"}[24h])", "refId": "A" }]
+    },
+
+    { "id": 400, "type": "row", "title": "Container",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 }, "collapsed": false },
+    {
+      "id": 12, "type": "timeseries", "title": "CPU (%)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "targets": [{ "expr": "rate(container_cpu_usage_seconds_total{name=\"sidwell-broadcasting\"}[5m]) * 100", "legendFormat": "cpu%", "refId": "A" }]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Memory",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "container_memory_working_set_bytes{name=\"sidwell-broadcasting\"}", "legendFormat": "working set", "refId": "A" },
+        { "expr": "container_memory_rss{name=\"sidwell-broadcasting\"}", "legendFormat": "rss", "refId": "B" }
+      ]
+    },
+    {
+      "id": 14, "type": "timeseries", "title": "Network I/O",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        { "expr": "rate(container_network_receive_bytes_total{name=\"sidwell-broadcasting\"}[5m])", "legendFormat": "rx", "refId": "A" },
+        { "expr": "rate(container_network_transmit_bytes_total{name=\"sidwell-broadcasting\"}[5m])", "legendFormat": "tx", "refId": "B" }
+      ]
+    }
+  ]
+}

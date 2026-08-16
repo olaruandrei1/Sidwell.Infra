@@ -1,0 +1,11 @@
+# Secrets — nu comite niciodata
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+.idea/

@@ -1,0 +1,300 @@
+services:
+  traefik:
+    image: traefik:v3.2
+    container_name: sidwell-traefik
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
+    networks:
+      - public
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: sidwell-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sidwell}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-sidwell}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: sidwell-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - internal
+
+  core:
+    build:
+      context: ..
+      dockerfile: core/Dockerfile
+    container_name: sidwell-core
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Sidwell: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-sidwell};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}"
+      Broadcast__BaseUrl: "http://broadcasting:8080/"
+      Broadcast__Secret: "${BROADCASTING_INTERNAL_SECRET}"
+      INTERNAL_SECRET: "${BROADCASTING_INTERNAL_SECRET}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: sidwell-backend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Sidwell: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-sidwell};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}"
+      Redis__ConnectionString: "redis:6379"
+      Gemini__ApiKey: "${GEMINI_API_KEY}"
+      Firebase__ProjectId: "${FIREBASE_PROJECT_ID}"
+      InternalServices__CoreBaseUrl: "http://core:8080/"
+      InternalServices__SyncApiBaseUrl: "http://sync:8080/"
+      InternalServices__Secret: "${BROADCASTING_INTERNAL_SECRET}"
+      Finance__ReceiptStoragePath: "/data/receipts"
+      WebPush__PublicKey: "${VAPID_PUBLIC_KEY}"
+      WebPush__PrivateKey: "${VAPID_PRIVATE_KEY}"
+      WebPush__Subject: "${VAPID_SUBJECT}"
+      Cors__AllowedOrigins__0: "https://${DOMAIN}"
+      Finnhub__ApiKey: "${FINNHUB_API_KEY}"
+      Broadcast__BaseUrl: "http://broadcasting:8080/"
+      Broadcast__Secret: "${BROADCASTING_INTERNAL_SECRET}"
+      WebAuthn__RpId: "${DOMAIN}"
+    volumes:
+      - receipt-data:/data/receipts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      core:
+        condition: service_started
+    networks:
+      - internal
+      - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=8080"
+      - "traefik.docker.network=sidwell-public"
+
+  sync:
+    build:
+      context: ../sync
+      dockerfile: Dockerfile
+    container_name: sidwell-sync
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Sidwell: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-sidwell};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379"
+      Finnhub__ApiKey: "${FINNHUB_API_KEY}"
+      AlphaVantage__ApiKey: "${ALPHAVANTAGE_API_KEY}"
+      TwelveData__ApiKey: "${TWELVEDATA_API_KEY}"
+      Marketaux__ApiKey: "${MARKETAUX_API_KEY}"
+      Gemini__ApiKey: "${GEMINI_API_KEY}"
+      YahooBridge__BaseUrl: "http://yfinance:8000/"
+      Core__BaseUrl: "http://core:8080/"
+      Core__Secret: "${BROADCASTING_INTERNAL_SECRET}"
+      Broadcast__BaseUrl: "http://broadcasting:8080/"
+      Broadcast__Secret: "${BROADCASTING_INTERNAL_SECRET}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      core:
+        condition: service_started
+      yfinance:
+        condition: service_started
+    networks:
+      - internal
+
+  broadcasting:
+    build:
+      context: ../broadcasting
+      dockerfile: Dockerfile
+    container_name: sidwell-broadcasting
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Redis__ConnectionString: "redis:6379"
+      Internal__Secret: "${BROADCASTING_INTERNAL_SECRET}"
+      WebPush__PublicKey: "${VAPID_PUBLIC_KEY}"
+      WebPush__PrivateKey: "${VAPID_PRIVATE_KEY}"
+      WebPush__Subject: "${VAPID_SUBJECT}"
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - internal
+      - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.broadcasting.rule=Host(`broadcast.${DOMAIN}`)"
+      - "traefik.http.routers.broadcasting.entrypoints=websecure"
+      - "traefik.http.routers.broadcasting.tls.certresolver=letsencrypt"
+      - "traefik.http.services.broadcasting.loadbalancer.server.port=8080"
+      - "traefik.docker.network=sidwell-public"
+
+  yfinance:
+    build:
+      context: ../sync/yfinance
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: sidwell-yfinance
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY}"
+    networks:
+      - internal
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: "https://api.${DOMAIN}/api"
+        VITE_BROADCAST_URL: "https://broadcast.${DOMAIN}"
+        VITE_USE_MOCKS: "false"
+        VITE_FIREBASE_API_KEY: "${FIREBASE_API_KEY}"
+        VITE_FIREBASE_AUTH_DOMAIN: "${FIREBASE_AUTH_DOMAIN}"
+        VITE_FIREBASE_PROJECT_ID: "${FIREBASE_PROJECT_ID}"
+        VITE_FIREBASE_APP_ID: "${FIREBASE_APP_ID}"
+    container_name: sidwell-frontend
+    restart: unless-stopped
+    networks:
+      - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network=sidwell-public"
+
+  prometheus:
+    image: prom/prometheus:v2.54.0
+    container_name: sidwell-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - internal
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.2
+    container_name: sidwell-cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - internal
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.63.0
+    container_name: sidwell-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    networks:
+      - internal
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: sidwell-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sidwell}?sslmode=disable"
+    networks:
+      - internal
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: sidwell-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_ROOT_URL: "https://grafana.${DOMAIN}"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - internal
+      - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=sidwell-public"
+
+volumes:
+  pgdata:
+    name: sidwell-pgdata
+  redis-data:
+    name: sidwell-redis-data
+  traefik-certs:
+    name: sidwell-traefik-certs
+  receipt-data:
+    name: sidwell-receipt-data
+  prometheus-data:
+    name: sidwell-prometheus-data
+  grafana-data:
+    name: sidwell-grafana-data
+
+networks:
+  public:
+    name: sidwell-public
+  internal:
+    name: sidwell-internal

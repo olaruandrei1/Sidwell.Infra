@@ -1,0 +1,89 @@
+{
+  "uid": "sidwell-frontend",
+  "title": "Frontend (nginx)",
+  "tags": ["sidwell", "web"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "id": 100, "type": "row", "title": "Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false },
+    {
+      "id": 1, "type": "stat", "title": "Container Restarts (24h)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] } } },
+      "options": { "colorMode": "background" },
+      "targets": [{ "expr": "changes(container_start_time_seconds{name=\"sidwell-frontend\"}[24h])", "refId": "A" }]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Uptime",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{ "expr": "time() - container_start_time_seconds{name=\"sidwell-frontend\"}", "refId": "A" }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Memory Used",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{ "expr": "container_memory_working_set_bytes{name=\"sidwell-frontend\"}", "refId": "A" }]
+    },
+    {
+      "id": 4, "type": "stat", "title": "CPU (avg 5m)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "targets": [{ "expr": "rate(container_cpu_usage_seconds_total{name=\"sidwell-frontend\"}[5m]) * 100", "refId": "A" }]
+    },
+
+    { "id": 200, "type": "row", "title": "Resource Usage",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }, "collapsed": false },
+    {
+      "id": 5, "type": "timeseries", "title": "CPU (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "targets": [{ "expr": "rate(container_cpu_usage_seconds_total{name=\"sidwell-frontend\"}[5m]) * 100", "legendFormat": "cpu%", "refId": "A" }]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Memory",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "container_memory_working_set_bytes{name=\"sidwell-frontend\"}", "legendFormat": "working set", "refId": "A" },
+        { "expr": "container_memory_rss{name=\"sidwell-frontend\"}", "legendFormat": "rss", "refId": "B" }
+      ]
+    },
+
+    { "id": 300, "type": "row", "title": "I/O",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }, "collapsed": false },
+    {
+      "id": 7, "type": "timeseries", "title": "Network Receive",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [{ "expr": "rate(container_network_receive_bytes_total{name=\"sidwell-frontend\"}[5m])", "legendFormat": "rx", "refId": "A" }]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Network Transmit",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [{ "expr": "rate(container_network_transmit_bytes_total{name=\"sidwell-frontend\"}[5m])", "legendFormat": "tx", "refId": "A" }]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Disk I/O",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        { "expr": "rate(container_fs_reads_bytes_total{name=\"sidwell-frontend\"}[5m])", "legendFormat": "read", "refId": "A" },
+        { "expr": "rate(container_fs_writes_bytes_total{name=\"sidwell-frontend\"}[5m])", "legendFormat": "write", "refId": "B" }
+      ]
+    }
+  ]
+}

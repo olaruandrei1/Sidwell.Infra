@@ -1,0 +1,158 @@
+{
+  "uid": "sidwell-overview",
+  "title": "00 · Sidwell Overview",
+  "tags": ["sidwell", "overview"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "row", "title": "Service Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 2, "type": "stat", "title": "Backend (BFF)",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "up{job=\"backend\"}", "refId": "A" }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Core",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "up{job=\"core\"}", "refId": "A" }]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Sync",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "up{job=\"sync\"}", "refId": "A" }]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Broadcasting",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "up{job=\"broadcasting\"}", "refId": "A" }]
+    },
+    {
+      "id": 6, "type": "stat", "title": "Postgres",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "up{job=\"postgres\"}", "refId": "A" }]
+    },
+    {
+      "id": 7, "type": "stat", "title": "Redis",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "up{job=\"redis\"}", "refId": "A" }]
+    },
+
+    {
+      "id": 10, "type": "row", "title": "Cluster Traffic",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Total Request Rate (req/s across all services)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum by (job) (rate(http_requests_received_total[5m]))", "legendFormat": "{{job}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Error Rate % (5xx / total)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        { "expr": "100 * sum by (job) (rate(http_requests_received_total{code=~\"5..\"}[5m])) / sum by (job) (rate(http_requests_received_total[5m]))", "legendFormat": "{{job}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "P95 Latency by Service (s)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket[5m])))", "legendFormat": "{{job}}", "refId": "A" }
+      ]
+    },
+
+    {
+      "id": 20, "type": "row", "title": "Resource Pressure",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "collapsed": false
+    },
+    {
+      "id": 21, "type": "bargauge", "title": "CPU % by Container",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 60 }, { "color": "red", "value": 85 }] } } },
+      "options": { "orientation": "horizontal", "displayMode": "gradient" },
+      "targets": [
+        { "expr": "sort_desc(rate(container_cpu_usage_seconds_total{name=~\"sidwell-.*\"}[5m]) * 100)", "legendFormat": "{{name}}", "refId": "A", "instant": true }
+      ]
+    },
+    {
+      "id": 22, "type": "bargauge", "title": "Memory Used by Container",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "options": { "orientation": "horizontal", "displayMode": "gradient" },
+      "targets": [
+        { "expr": "sort_desc(container_memory_usage_bytes{name=~\"sidwell-.*\"})", "legendFormat": "{{name}}", "refId": "A", "instant": true }
+      ]
+    },
+
+    {
+      "id": 30, "type": "row", "title": "Data Plane",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "collapsed": false
+    },
+    {
+      "id": 31, "type": "stat", "title": "Postgres Connections",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "pg_stat_database_numbackends{datname=\"sidwell\"}", "refId": "A" }]
+    },
+    {
+      "id": 32, "type": "stat", "title": "Postgres Cache Hit %",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 90 }, { "color": "green", "value": 98 }] } } },
+      "options": { "colorMode": "background" },
+      "targets": [{
+        "expr": "100 * pg_stat_database_blks_hit_total{datname=\"sidwell\"} / (pg_stat_database_blks_hit_total{datname=\"sidwell\"} + pg_stat_database_blks_read_total{datname=\"sidwell\"})",
+        "refId": "A"
+      }]
+    },
+    {
+      "id": 33, "type": "stat", "title": "Redis Memory",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{ "expr": "redis_memory_used_bytes", "refId": "A" }]
+    },
+    {
+      "id": 34, "type": "stat", "title": "Redis Ops/sec",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 34 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(redis_commands_processed_total[5m])", "refId": "A" }]
+    }
+  ]
+}

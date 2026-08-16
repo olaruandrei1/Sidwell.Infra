@@ -1,0 +1,10 @@
+apiVersion: 1
+
+providers:
+  - name: Sidwell
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
