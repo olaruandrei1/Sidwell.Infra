@@ -91,6 +91,7 @@ services:
       WebPush__Subject: "${VAPID_SUBJECT}"
       Cors__AllowedOrigins__0: "https://${DOMAIN}"
       Finnhub__ApiKey: "${FINNHUB_API_KEY}"
+      Yfinance__BaseUrl: "http://yfinance:8000/"
       Broadcast__BaseUrl: "http://broadcasting:8080/"
       Broadcast__Secret: "${BROADCASTING_INTERNAL_SECRET}"
       WebAuthn__RpId: "${DOMAIN}"
@@ -102,6 +103,8 @@ services:
       redis:
         condition: service_started
       core:
+        condition: service_started
+      yfinance:
         condition: service_started
     networks:
       - internal
